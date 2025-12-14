@@ -29,6 +29,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 CMD ["sh", "-c", "mkdir -p models data/processed && \
   dvc config core.no_scm true && \
   if [ -n \"${DAGSHUB_USERNAME:-}\" ] && [ -n \"${DAGSHUB_TOKEN:-}\" ]; then \
+    dvc remote modify --local dagshub auth basic && \
     dvc remote modify --local dagshub user \"$DAGSHUB_USERNAME\" && \
     dvc remote modify --local dagshub password \"$DAGSHUB_TOKEN\"; \
   else \
