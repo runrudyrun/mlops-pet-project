@@ -16,7 +16,7 @@ A comprehensive machine learning pipeline for wine quality classification demons
 ## Project Structure
 
 ```
-mlops-pipeline/
+mlops-pet-project/
 ├── .github/workflows/     # CI/CD workflows
 ├── .dvc/                  # DVC configuration
 ├── configs/               # Hyperparameters and model configs
@@ -46,7 +46,7 @@ mlops-pipeline/
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd mlops-pipeline
+   cd mlops-pet-project
    ```
 
 2. **Create and activate virtual environment**
@@ -168,6 +168,11 @@ dvc repro evaluate  # Model evaluation
 uvicorn src.api.app:app --reload
 ```
 
+Or use the Makefile:
+```bash
+make api
+```
+
 Access the API documentation at `http://localhost:8000/docs`
 
 ### Running Tests
@@ -190,14 +195,30 @@ isort .                    # Import sorting
 
 Build and run with Docker:
 ```bash
-docker build -t mlops-pipeline .
-docker run -p 8000:8000 mlops-pipeline
+docker build -t mlops-pet-project .
+docker run -p 8000:8000 mlops-pet-project
 ```
 
 Or use Docker Compose:
 ```bash
-docker-compose up
+docker compose up
 ```
+
+Or use the Makefile:
+```bash
+make docker-up
+```
+
+## Deploy on Render (Blueprint)
+
+This repository includes `render.yaml` for Render GitOps deployments.
+
+Required secrets on Render:
+
+- `DAGSHUB_USERNAME`
+- `DAGSHUB_TOKEN`
+
+The service pulls required artifacts from DagsHub via `dvc pull` on startup.
 
 ## Environment Variables
 
@@ -206,6 +227,7 @@ docker-compose up
 | `MLFLOW_TRACKING_URI` | MLflow/DagsHub tracking server URL |
 | `DAGSHUB_USERNAME` | DagsHub username |
 | `DAGSHUB_TOKEN` | DagsHub access token |
+| `CONFIG_PATH` | Path to config file (default: `configs/params.yaml`) |
 | `MODEL_PATH` | Path to trained model (default: `models/model.pkl`) |
 
 ## Contributing
