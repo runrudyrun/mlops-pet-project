@@ -27,10 +27,13 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD python -c "import os, urllib.request; port=os.environ.get('PORT','8000'); urllib.request.urlopen(f'http://127.0.0.1:{port}/health').read(); print('ok')" || exit 1
 
 CMD ["sh", "-c", "mkdir -p models data/processed && \
+  dvc config core.no_scm true && \
   if [ -n \"${DAGSHUB_USERNAME:-}\" ] && [ -n \"${DAGSHUB_TOKEN:-}\" ]; then \
     dvc remote modify --local dagshub user \"$DAGSHUB_USERNAME\" && \
     dvc remote modify --local dagshub password \"$DAGSHUB_TOKEN\"; \
+  else \
+    echo 'ERROR: DAGSHUB_USERNAME and DAGSHUB_TOKEN must be set to pull DVC data from DagsHub.' 1>&2; \
+    exit 1; \
   fi && \
-  dvc config core.no_scm true && \
   dvc pull models/model.pkl models/model_info.txt data/processed/train.csv data/processed/test.csv && \
   uvicorn src.api.app:app --host 0.0.0.0 --port ${PORT:-8000}"]
