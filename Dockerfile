@@ -31,5 +31,6 @@ CMD ["sh", "-c", "mkdir -p models data/processed && \
     dvc remote modify --local dagshub user \"$DAGSHUB_USERNAME\" && \
     dvc remote modify --local dagshub password \"$DAGSHUB_TOKEN\"; \
   fi && \
+  dvc config core.no_scm true && \
   dvc pull models/model.pkl models/model_info.txt data/processed/train.csv data/processed/test.csv && \
   uvicorn src.api.app:app --host 0.0.0.0 --port ${PORT:-8000}"]
