@@ -1,0 +1,115 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python -m src.data.prepare
+    deps:
+    - path: data/raw/wine_quality.csv
+      hash: md5
+      md5: 7d814a1bda02145efe703f4e1c01847a
+      size: 91999
+    - path: src/config.py
+      hash: md5
+      md5: 4af0a5dcb4ff848d677418a012f4d281
+      size: 4514
+    - path: src/data/prepare.py
+      hash: md5
+      md5: d26e33d6f97e91f5fab41ec2fe5e72a5
+      size: 5283
+    params:
+      configs/params.yaml:
+        data.random_state: 42
+        data.test_size: 0.2
+    outs:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 2bf1ec23359214c2dc56574fcb700836
+      size: 18556
+    - path: data/processed/train.csv
+      hash: md5
+      md5: bfde42a7396c6cbd72db5b337a7f2b96
+      size: 73589
+  train:
+    cmd: python -m src.models.train
+    deps:
+    - path: data/processed/train.csv
+      hash: md5
+      md5: bfde42a7396c6cbd72db5b337a7f2b96
+      size: 73589
+    - path: src/config.py
+      hash: md5
+      md5: 4af0a5dcb4ff848d677418a012f4d281
+      size: 4514
+    - path: src/models/train.py
+      hash: md5
+      md5: 5a1393a70d82e333934002b4915f303b
+      size: 8947
+    params:
+      configs/params.yaml:
+        mlflow:
+          tracking_uri: ${MLFLOW_TRACKING_URI}
+          experiment_name: wine-quality-classification
+        models:
+        - name: random_forest
+          enabled: true
+          params:
+            n_estimators: 100
+            max_depth: 10
+            min_samples_split: 2
+            random_state: 42
+        - name: gradient_boosting
+          enabled: true
+          params:
+            n_estimators: 100
+            learning_rate: 0.1
+            max_depth: 5
+            random_state: 42
+        - name: logistic_regression
+          enabled: true
+          params:
+            max_iter: 1000
+            random_state: 42
+    outs:
+    - path: models/model.pkl
+      hash: md5
+      md5: a0a8e7540375df2f2135103caaa25b11
+      size: 2271337
+    - path: models/model_info.txt
+      hash: md5
+      md5: 8693e494011248532c4c176583eaec7a
+      size: 30
+  evaluate:
+    cmd: python -m src.models.evaluate
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 2bf1ec23359214c2dc56574fcb700836
+      size: 18556
+    - path: models/model.pkl
+      hash: md5
+      md5: a0a8e7540375df2f2135103caaa25b11
+      size: 2271337
+    - path: src/config.py
+      hash: md5
+      md5: 4af0a5dcb4ff848d677418a012f4d281
+      size: 4514
+    - path: src/models/evaluate.py
+      hash: md5
+      md5: 7d95a56d70e17e12a03c1afa75a99808
+      size: 12024
+    params:
+      configs/params.yaml:
+        evaluation:
+          metrics_path: reports/metrics.json
+          primary_metric: f1_score
+        mlflow:
+          tracking_uri: ${MLFLOW_TRACKING_URI}
+          experiment_name: wine-quality-classification
+    outs:
+    - path: reports/confusion_matrix.csv
+      hash: md5
+      md5: a7b01157548dca7ab5796ed80a9edbcb
+      size: 245
+    - path: reports/metrics.json
+      hash: md5
+      md5: 777690960643a89e99d5bf5fa1bd2805
+      size: 883

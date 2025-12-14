@@ -1,0 +1,37 @@
+# DVC ignore patterns
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE files
+.idea/
+.vscode/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Testing artifacts
+.pytest_cache/
+.coverage
+htmlcov/
