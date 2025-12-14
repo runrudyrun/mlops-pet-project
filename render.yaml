@@ -10,3 +10,7 @@ services:
         value: configs/params.yaml
       - key: MODEL_PATH
         value: models/model.pkl
+      - key: DAGSHUB_USERNAME
+        sync: false
+      - key: DAGSHUB_TOKEN
+        sync: false
