@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: mlops-wine-quality-api
+    env: docker
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: CONFIG_PATH
+        value: configs/params.yaml
+      - key: MODEL_PATH
+        value: models/model.pkl

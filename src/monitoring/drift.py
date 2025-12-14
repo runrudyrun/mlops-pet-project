@@ -11,9 +11,23 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from evidently import ColumnMapping
-from evidently.metric_preset import DataDriftPreset
-from evidently.report import Report
+
+try:
+    from evidently.legacy.metric_preset import DataDriftPreset
+    from evidently.legacy.pipeline.column_mapping import ColumnMapping
+    from evidently.legacy.report import Report
+except ImportError:  # pragma: no cover
+    from evidently.presets.drift import DataDriftPreset
+
+    try:
+        from evidently import Report
+    except ImportError:  # pragma: no cover
+        from evidently.legacy.report import Report
+
+    try:
+        from evidently.legacy.pipeline.column_mapping import ColumnMapping
+    except ImportError:  # pragma: no cover
+        from evidently import ColumnMapping
 
 from src.config import load_config
 
@@ -116,11 +130,19 @@ def compute_drift_report(
 
     # Create and run the drift report
     report = Report(metrics=[DataDriftPreset()])
-    report.run(
-        reference_data=reference_data,
-        current_data=current_data,
-        column_mapping=column_mapping,
-    )
+    try:
+        report.run(
+            reference_data=reference_data,
+            current_data=current_data,
+            column_mapping=column_mapping,
+        )
+    except TypeError:
+        # Evidently >=0.7 uses a different Report.run signature and does not accept
+        # column_mapping.
+        try:
+            report.run(current_data=current_data, reference_data=reference_data)
+        except TypeError:
+            report.run(reference_data=reference_data, current_data=current_data)
 
     logger.info("Drift report computation complete")
     return report
