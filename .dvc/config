@@ -1,0 +1,6 @@
+[core]
+    remote = dagshub
+    autostage = true
+
+['remote "dagshub"']
+    url = https://dagshub.com/runrudyrun/mlops-pet-project.dvc

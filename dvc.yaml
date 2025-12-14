@@ -1,0 +1,47 @@
+stages:
+  prepare:
+    cmd: python -m src.data.prepare
+    deps:
+      - src/data/prepare.py
+      - src/config.py
+      - data/raw/wine_quality.csv
+    params:
+      - configs/params.yaml:
+          - data.test_size
+          - data.random_state
+    outs:
+      - data/processed/train.csv
+      - data/processed/test.csv
+
+  train:
+    cmd: python -m src.models.train
+    deps:
+      - src/models/train.py
+      - src/config.py
+      - data/processed/train.csv
+    params:
+      - configs/params.yaml:
+          - models
+          - mlflow
+    outs:
+      - models/model.pkl
+      - models/model_info.txt
+
+  evaluate:
+    cmd: python -m src.models.evaluate
+    deps:
+      - src/models/evaluate.py
+      - src/config.py
+      - models/model.pkl
+      - data/processed/test.csv
+    params:
+      - configs/params.yaml:
+          - evaluation
+          - mlflow
+    metrics:
+      - reports/metrics.json:
+          cache: false
+    plots:
+      - reports/confusion_matrix.csv:
+          x: predicted
+          y: actual

@@ -1,0 +1,48 @@
+# MLOps Pipeline Configuration
+# This file contains all hyperparameters and settings for the wine quality classification pipeline
+
+# Data configuration
+data:
+  raw_path: data/raw/wine_quality.csv
+  processed_dir: data/processed
+  test_size: 0.2
+  random_state: 42
+
+# Model configurations
+models:
+  - name: random_forest
+    enabled: true
+    params:
+      n_estimators: 100
+      max_depth: 10
+      min_samples_split: 2
+      random_state: 42
+
+  - name: gradient_boosting
+    enabled: true
+    params:
+      n_estimators: 100
+      learning_rate: 0.1
+      max_depth: 5
+      random_state: 42
+
+  - name: logistic_regression
+    enabled: true
+    params:
+      max_iter: 1000
+      random_state: 42
+
+# Evaluation settings
+evaluation:
+  metrics_path: reports/metrics.json
+  primary_metric: f1_score
+
+# Monitoring settings
+monitoring:
+  drift_threshold: 0.1
+  report_path: reports/drift_report.html
+
+# MLflow configuration
+mlflow:
+  tracking_uri: ${MLFLOW_TRACKING_URI}
+  experiment_name: wine-quality-classification
