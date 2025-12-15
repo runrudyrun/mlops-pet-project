@@ -36,5 +36,5 @@ CMD ["sh", "-c", "mkdir -p models data/processed && \
     echo 'ERROR: DAGSHUB_USERNAME and DAGSHUB_TOKEN must be set to pull DVC data from DagsHub.' 1>&2; \
     exit 1; \
   fi && \
-  dvc pull -v models/model.pkl models/model_info.txt data/processed/train.csv data/processed/test.csv && \
+  dvc pull models/model.pkl models/model_info.txt data/processed/train.csv data/processed/test.csv && \
   uvicorn src.api.app:app --host 0.0.0.0 --port ${PORT:-8000}"]
