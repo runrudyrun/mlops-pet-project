@@ -4,6 +4,7 @@ This module provides functionality to evaluate trained ML models,
 compute metrics, and select the best model for production.
 """
 
+import os
 import json
 import logging
 from pathlib import Path
@@ -11,6 +12,7 @@ from typing import Any
 
 import joblib
 import mlflow
+import mlflow.sklearn
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
@@ -229,6 +231,51 @@ def log_model_comparison(
         logger.info(f"Logged model comparison to MLflow. Best: {best_model_name}")
 
 
+def _make_registry_name(best_model_name: str) -> str:
+    prefix = os.getenv("MLFLOW_REGISTER_PREFIX", "wine-quality")
+    safe_model_name = best_model_name.replace(" ", "_").replace("/", "_")
+    append_date = os.getenv("MLFLOW_REGISTER_APPEND_DATE", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    if not append_date:
+        return f"{prefix}-{safe_model_name}"
+
+    from datetime import datetime, timezone
+
+    date_part = datetime.now(timezone.utc).strftime("%Y%m%d")
+    return f"{prefix}-{safe_model_name}-{date_part}"
+
+
+def register_best_model_to_registry(
+    *,
+    best_model_name: str,
+    model: BaseEstimator,
+    metrics: dict[str, Any],
+) -> None:
+    registry_name = _make_registry_name(best_model_name)
+
+    with mlflow.start_run(run_name=f"register_{best_model_name}") as run:
+        mlflow.log_param("best_model", best_model_name)
+        mlflow.log_param("registered_model_name", registry_name)
+
+        for metric_name, value in metrics.items():
+            if metric_name != "confusion_matrix":
+                mlflow.log_metric(metric_name, float(value))
+
+        model_info = mlflow.sklearn.log_model(model, name="model")
+
+        model_uri = getattr(model_info, "model_uri", None) or f"runs:/{run.info.run_id}/models/model"
+        result = mlflow.register_model(model_uri=model_uri, name=registry_name)
+        logger.info(
+            "Registered model '%s' version %s from run %s",
+            result.name,
+            result.version,
+            run.info.run_id,
+        )
+
+
 def load_test_data(config: dict) -> tuple[pd.DataFrame, pd.Series]:
     """Load test data from processed directory.
 
@@ -359,6 +406,12 @@ def main(config_path: str = "configs/params.yaml") -> None:
 
     # Log model comparison to MLflow
     log_model_comparison(all_metrics, best_model_name, primary_metric)
+
+    register_best_model_to_registry(
+        best_model_name=best_model_name,
+        model=models[best_model_name],
+        metrics=all_metrics[best_model_name],
+    )
 
     # Prepare output metrics
     output_metrics = {
