@@ -2,11 +2,26 @@ name: CML
 
 on:
   pull_request:
+    branches: ["main", "master"]
+    paths:
+      - "src/**"
+      - "configs/**"
+      - "dvc.yaml"
+      - "dvc.lock"
+      - "requirements.txt"
+      - "requirements-dev.txt"
+      - ".github/workflows/cml.yaml"
+      - ".github/workflows/ci.yaml"
   workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   pipeline-report:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.fork == false
 
     steps:
       - name: Checkout
@@ -16,10 +31,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
       - name: Configure DVC auth (DagsHub)
@@ -32,16 +49,77 @@ jobs:
           dvc remote modify --local dagshub password "$DAGSHUB_TOKEN"
 
       - name: Pull data/model cache
+        env:
+          DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           dvc pull
 
       - name: Reproduce pipeline
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           dvc repro
+
+      - name: Extract links (MLflow + Registry)
+        id: links
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_REGISTER_PREFIX: ${{ secrets.MLFLOW_REGISTER_PREFIX }}
+          MLFLOW_REGISTER_APPEND_DATE: ${{ secrets.MLFLOW_REGISTER_APPEND_DATE }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          
+          out = os.environ["GITHUB_OUTPUT"]
+          
+          tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "").rstrip("/")
+          mlflow_experiment_url = f"{tracking_uri}/#/experiments" if tracking_uri else ""
+          
+          best_model = ""
+          try:
+              with open("reports/metrics.json", "r") as f:
+                  metrics = json.load(f)
+              best_model = metrics.get("best_model") or ""
+          except Exception:
+              best_model = ""
+          
+          prefix = (os.environ.get("MLFLOW_REGISTER_PREFIX") or "wine-quality").strip()
+          append_date = (os.environ.get("MLFLOW_REGISTER_APPEND_DATE") or "false").strip().lower() in {"1", "true", "yes"}
+          
+          registry_name = ""
+          if best_model:
+              safe_model = best_model.replace(" ", "_").replace("/", "_")
+              registry_name = f"{prefix}-{safe_model}"
+              if append_date:
+                  date_part = datetime.now(timezone.utc).strftime("%Y%m%d")
+                  registry_name = f"{registry_name}-{date_part}"
+          
+          mlflow_models_url = f"{tracking_uri}/#/models" if tracking_uri else ""
+          mlflow_registry_model_url = f"{tracking_uri}/#/models/{registry_name}" if tracking_uri and registry_name else ""
+          
+          with open(out, "a") as f:
+              f.write(f"best_model={best_model}\n")
+              f.write(f"registry_name={registry_name}\n")
+              f.write(f"mlflow_experiment_url={mlflow_experiment_url}\n")
+              f.write(f"mlflow_models_url={mlflow_models_url}\n")
+              f.write(f"mlflow_registry_model_url={mlflow_registry_model_url}\n")
+          PY
 
       - name: Create CML report
         run: |
           echo "## DVC Pipeline Report" > report.md
+          echo "" >> report.md
+          echo "### MLflow" >> report.md
+          echo "" >> report.md
+          echo "- Experiment UI: ${{ steps.links.outputs.mlflow_experiment_url }}" >> report.md
+          echo "- Model Registry UI: ${{ steps.links.outputs.mlflow_models_url }}" >> report.md
+          if [ -n "${{ steps.links.outputs.registry_name }}" ]; then echo "- Registered model (expected): ${{ steps.links.outputs.registry_name }}" >> report.md; fi
+          if [ -n "${{ steps.links.outputs.mlflow_registry_model_url }}" ]; then echo "- Registered model link: ${{ steps.links.outputs.mlflow_registry_model_url }}" >> report.md; fi
           echo "" >> report.md
           echo "### Metrics" >> report.md
           echo "" >> report.md
