@@ -1,7 +1,6 @@
 """Unit tests for the configuration loader utility."""
 
 import os
-import tempfile
 from pathlib import Path
 
 import pytest

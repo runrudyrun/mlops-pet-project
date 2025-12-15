@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from src.api.schemas import (
     BatchPredictionRequest,
@@ -47,12 +48,12 @@ class TestWineFeatures:
 
     def test_forbids_extra_fields(self, sample_wine_features):
         payload = {**sample_wine_features, "extra": 1}
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             _validate(WineFeatures, payload)
 
     def test_rejects_negative_values(self, sample_wine_features):
         payload = {**sample_wine_features, "alcohol": -1}
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             _validate(WineFeatures, payload)
 
 
@@ -61,7 +62,7 @@ class TestBatchPredictionRequest:
         model = _validate(BatchPredictionRequest, {"items": [sample_wine_features]})
         assert len(model.items) == 1
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             _validate(BatchPredictionRequest, {"items": []})
 
 
@@ -72,7 +73,7 @@ class TestPredictionResponse:
             {"predicted_quality": 5, "confidence": 0.5, "model_name": "rf"},
         )
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             _validate(
                 PredictionResponse,
                 {"predicted_quality": 5, "confidence": 1.5, "model_name": "rf"},
@@ -92,7 +93,7 @@ class TestDriftResponse:
             },
         )
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             _validate(
                 DriftResponse,
                 {

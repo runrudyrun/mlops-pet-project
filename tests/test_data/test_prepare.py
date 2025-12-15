@@ -12,7 +12,7 @@ from src.data.prepare import load_data, preprocess_data, split_data
 @pytest.fixture
 def sample_wine_df():
     """Create a sample wine quality DataFrame for testing.
-    
+
     Uses balanced quality classes to support stratified splitting.
     """
     return pd.DataFrame({
@@ -58,7 +58,7 @@ class TestLoadData:
         """Test that EmptyDataError is raised for empty file."""
         empty_file = tmp_path / "empty.csv"
         empty_file.write_text("col1,col2\n")  # Header only, no data
-        
+
         df = pd.read_csv(empty_file)
         # Empty file with headers creates empty DataFrame
         assert df.empty
@@ -83,9 +83,9 @@ class TestPreprocessData:
         df = sample_wine_df.copy()
         df.loc[0, "fixed acidity"] = None
         df.loc[1, "volatile acidity"] = None
-        
+
         result = preprocess_data(df)
-        
+
         assert not result.isna().any().any()
         assert len(result) == len(df)
 
@@ -94,23 +94,23 @@ class TestPreprocessData:
         df = sample_wine_df.copy()
         df.loc[0, "quality"] = None
         df.loc[1, "quality"] = None
-        
+
         result = preprocess_data(df)
-        
+
         assert len(result) == len(df) - 2
         assert not result["quality"].isna().any()
 
     def test_preprocess_data_missing_columns(self, sample_wine_df):
         """Test that ValueError is raised for missing required columns."""
         df = sample_wine_df.drop(columns=["fixed acidity", "pH"])
-        
+
         with pytest.raises(ValueError, match="Missing required columns"):
             preprocess_data(df)
 
     def test_preprocess_data_preserves_dtypes(self, sample_wine_df):
         """Test that preprocessing preserves numeric dtypes."""
         result = preprocess_data(sample_wine_df)
-        
+
         for col in result.columns:
             assert pd.api.types.is_numeric_dtype(result[col])
 
@@ -123,7 +123,7 @@ class TestSplitData:
         """Test data splitting with default parameters."""
         df = preprocess_data(sample_wine_df)
         train_df, test_df = split_data(df)
-        
+
         assert len(train_df) + len(test_df) == len(df)
         # Default test_size is 0.2
         assert len(test_df) == pytest.approx(len(df) * 0.2, abs=1)
@@ -132,48 +132,48 @@ class TestSplitData:
         """Test data splitting with custom test size."""
         df = preprocess_data(sample_wine_df)
         train_df, test_df = split_data(df, test_size=0.3)
-        
+
         assert len(train_df) + len(test_df) == len(df)
         assert len(test_df) == pytest.approx(len(df) * 0.3, abs=1)
 
     def test_split_data_reproducibility(self, sample_wine_df):
         """Test that same random_state produces same split."""
         df = preprocess_data(sample_wine_df)
-        
+
         train1, test1 = split_data(df, random_state=42)
         train2, test2 = split_data(df, random_state=42)
-        
+
         pd.testing.assert_frame_equal(train1.reset_index(drop=True), train2.reset_index(drop=True))
         pd.testing.assert_frame_equal(test1.reset_index(drop=True), test2.reset_index(drop=True))
 
     def test_split_data_different_random_state(self, sample_wine_df):
         """Test that different random_state produces different split."""
         df = preprocess_data(sample_wine_df)
-        
+
         train1, test1 = split_data(df, random_state=42)
         train2, test2 = split_data(df, random_state=123)
-        
+
         # The splits should be different (indices won't match)
         assert not train1.index.equals(train2.index)
 
     def test_split_data_invalid_test_size_zero(self, sample_wine_df):
         """Test that ValueError is raised for test_size = 0."""
         df = preprocess_data(sample_wine_df)
-        
+
         with pytest.raises(ValueError, match="test_size must be between 0 and 1"):
             split_data(df, test_size=0)
 
     def test_split_data_invalid_test_size_one(self, sample_wine_df):
         """Test that ValueError is raised for test_size = 1."""
         df = preprocess_data(sample_wine_df)
-        
+
         with pytest.raises(ValueError, match="test_size must be between 0 and 1"):
             split_data(df, test_size=1)
 
     def test_split_data_invalid_test_size_negative(self, sample_wine_df):
         """Test that ValueError is raised for negative test_size."""
         df = preprocess_data(sample_wine_df)
-        
+
         with pytest.raises(ValueError, match="test_size must be between 0 and 1"):
             split_data(df, test_size=-0.1)
 
@@ -181,7 +181,7 @@ class TestSplitData:
         """Test that split preserves all columns."""
         df = preprocess_data(sample_wine_df)
         train_df, test_df = split_data(df)
-        
+
         assert list(train_df.columns) == list(df.columns)
         assert list(test_df.columns) == list(df.columns)
 
@@ -189,12 +189,12 @@ class TestSplitData:
         """Test that split is stratified by quality."""
         df = preprocess_data(sample_wine_df)
         train_df, test_df = split_data(df)
-        
+
         # Check that both quality classes are present in both splits
         original_classes = set(df["quality"].unique())
         train_classes = set(train_df["quality"].unique())
         test_classes = set(test_df["quality"].unique())
-        
+
         # Both splits should contain all quality classes
         assert train_classes == original_classes
         assert test_classes == original_classes

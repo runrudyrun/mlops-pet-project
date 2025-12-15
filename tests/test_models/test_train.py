@@ -138,7 +138,7 @@ class TestGetModel:
         """Test that error message lists supported models."""
         with pytest.raises(ValueError) as exc_info:
             get_model("invalid")
-        
+
         error_msg = str(exc_info.value)
         assert "random_forest" in error_msg
         assert "gradient_boosting" in error_msg
@@ -154,7 +154,7 @@ class TestTrainModel:
         model, training_time = train_model(
             X, y, "random_forest", {"n_estimators": 10, "random_state": 42}
         )
-        
+
         assert isinstance(model, RandomForestClassifier)
         assert training_time > 0
         # Model should be fitted
@@ -166,7 +166,7 @@ class TestTrainModel:
         model, training_time = train_model(
             X, y, "logistic_regression", {"max_iter": 100, "random_state": 42}
         )
-        
+
         assert isinstance(model, LogisticRegression)
         assert training_time > 0
         assert hasattr(model, "classes_")
@@ -175,7 +175,7 @@ class TestTrainModel:
         """Test that trained model can make predictions."""
         X, y = sample_training_data
         model, _ = train_model(X, y, "random_forest", {"n_estimators": 10, "random_state": 42})
-        
+
         predictions = model.predict(X)
         assert len(predictions) == len(y)
         assert all(p in [5, 6] for p in predictions)
@@ -184,7 +184,7 @@ class TestTrainModel:
         """Test that training time is positive."""
         X, y = sample_training_data
         _, training_time = train_model(X, y, "random_forest", {"n_estimators": 5})
-        
+
         assert training_time >= 0
 
 
@@ -197,15 +197,15 @@ class TestTrainModelWithMlflow:
         """Test that MLflow logs parameters."""
         X, y = sample_training_data
         params = {"n_estimators": 10, "random_state": 42}
-        
+
         # Setup mock
         mock_run = MagicMock()
         mock_run.info.run_id = "test-run-id"
         mock_mlflow.start_run.return_value.__enter__ = MagicMock(return_value=mock_run)
         mock_mlflow.start_run.return_value.__exit__ = MagicMock(return_value=False)
-        
+
         model, run_id = train_model_with_mlflow(X, y, "random_forest", params)
-        
+
         # Verify params were logged
         mock_mlflow.log_params.assert_called_once_with(params)
         mock_mlflow.log_param.assert_called_with("model_type", "random_forest")
@@ -214,14 +214,14 @@ class TestTrainModelWithMlflow:
     def test_train_model_logs_training_time(self, mock_mlflow, sample_training_data):
         """Test that MLflow logs training time metric."""
         X, y = sample_training_data
-        
+
         mock_run = MagicMock()
         mock_run.info.run_id = "test-run-id"
         mock_mlflow.start_run.return_value.__enter__ = MagicMock(return_value=mock_run)
         mock_mlflow.start_run.return_value.__exit__ = MagicMock(return_value=False)
-        
+
         train_model_with_mlflow(X, y, "random_forest", {"n_estimators": 5})
-        
+
         # Verify training_time metric was logged
         mock_mlflow.log_metric.assert_called()
         call_args = mock_mlflow.log_metric.call_args_list
@@ -232,14 +232,14 @@ class TestTrainModelWithMlflow:
     def test_train_model_logs_model_artifact(self, mock_mlflow, sample_training_data):
         """Test that MLflow logs model artifact."""
         X, y = sample_training_data
-        
+
         mock_run = MagicMock()
         mock_run.info.run_id = "test-run-id"
         mock_mlflow.start_run.return_value.__enter__ = MagicMock(return_value=mock_run)
         mock_mlflow.start_run.return_value.__exit__ = MagicMock(return_value=False)
-        
+
         train_model_with_mlflow(X, y, "random_forest", {"n_estimators": 5})
-        
+
         # Verify model was logged
         mock_mlflow.sklearn.log_model.assert_called_once()
 
@@ -247,14 +247,14 @@ class TestTrainModelWithMlflow:
     def test_train_model_returns_run_id(self, mock_mlflow, sample_training_data):
         """Test that function returns MLflow run ID."""
         X, y = sample_training_data
-        
+
         mock_run = MagicMock()
         mock_run.info.run_id = "expected-run-id"
         mock_mlflow.start_run.return_value.__enter__ = MagicMock(return_value=mock_run)
         mock_mlflow.start_run.return_value.__exit__ = MagicMock(return_value=False)
-        
+
         _, run_id = train_model_with_mlflow(X, y, "random_forest", {"n_estimators": 5})
-        
+
         assert run_id == "expected-run-id"
 
 
@@ -265,14 +265,14 @@ class TestTrainAllModels:
     def test_train_all_enabled_models(self, mock_mlflow, sample_training_data, sample_config):
         """Test that only enabled models are trained."""
         X, y = sample_training_data
-        
+
         mock_run = MagicMock()
         mock_run.info.run_id = "test-run-id"
         mock_mlflow.start_run.return_value.__enter__ = MagicMock(return_value=mock_run)
         mock_mlflow.start_run.return_value.__exit__ = MagicMock(return_value=False)
-        
+
         trained_models = train_all_models(X, y, sample_config)
-        
+
         # Should have 2 models (random_forest and logistic_regression are enabled)
         assert len(trained_models) == 2
         assert "random_forest" in trained_models

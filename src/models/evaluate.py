@@ -242,9 +242,9 @@ def _make_registry_name(best_model_name: str) -> str:
     if not append_date:
         return f"{prefix}-{safe_model_name}"
 
-    from datetime import datetime, timezone
+    from datetime import UTC, datetime
 
-    date_part = datetime.now(timezone.utc).strftime("%Y%m%d")
+    date_part = datetime.now(UTC).strftime("%Y%m%d")
     return f"{prefix}-{safe_model_name}-{date_part}"
 
 

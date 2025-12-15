@@ -94,7 +94,7 @@ class TestDriftEndpoint:
         processed_dir = tmp_path / "processed"
         processed_dir.mkdir(parents=True, exist_ok=True)
 
-        current = pd.DataFrame([{**{c: 1.0 for c in FEATURE_COLUMNS}, "quality": 5}])
+        current = pd.DataFrame([{**dict.fromkeys(FEATURE_COLUMNS, 1.0), "quality": 5}])
         current.to_csv(processed_dir / "test.csv", index=False)
 
         monkeypatch.setattr(

@@ -6,7 +6,7 @@ Evidently's drift detection capabilities.
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -184,8 +184,6 @@ def check_drift_threshold(
             drift_by_columns = metric_result["drift_by_columns"]
             for col_name, col_data in drift_by_columns.items():
                 if col_name in FEATURE_COLUMNS:
-                    # Get drift score (p-value based, lower means more drift)
-                    drift_score = col_data.get("drift_score", 0)
                     # In Evidently, drift_detected is based on statistical test
                     is_drifted = col_data.get("drift_detected", False)
                     drift_results[col_name] = is_drifted
@@ -248,7 +246,7 @@ def get_drift_summary(report: Report) -> dict[str, Any]:
         "drifted_features": drifted_features,
         "drift_score": drift_score,
         "feature_drift_scores": feature_drift_scores,
-        "last_check": datetime.utcnow().isoformat(),
+        "last_check": datetime.now(UTC).isoformat(),
     }
 
     logger.info(f"Drift summary: detected={drift_detected}, score={drift_score:.4f}")
@@ -272,7 +270,7 @@ def save_drift_report(report: Report, path: str | Path) -> None:
 
     logger.info(f"Saving drift report to {path}")
     report.save_html(str(path))
-    logger.info(f"Drift report saved successfully")
+    logger.info("Drift report saved successfully")
 
 
 def run_drift_check(
