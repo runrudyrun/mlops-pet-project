@@ -3,7 +3,7 @@ services:
     name: mlops-wine-quality-api
     env: docker
     plan: free
-    autoDeploy: true
+    autoDeploy: false
     healthCheckPath: /health
     envVars:
       - key: CONFIG_PATH
